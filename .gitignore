@@ -10,3 +10,17 @@
 # Operating system files
 .DS_Store
 Thumbs.db
+
+# Dependencies and generated output
+node_modules/
+dist/
+coverage/
+*.log
+
+# Private keys and certificates
+*.key
+*.pem
+*.p12
+*.pfx
+id_rsa
+id_ed25519
