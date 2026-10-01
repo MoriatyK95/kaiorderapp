@@ -1,0 +1,12 @@
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Local editor and agent state
+.agents/
+.codex/
+
+# Operating system files
+.DS_Store
+Thumbs.db
