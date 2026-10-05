@@ -163,3 +163,62 @@ API tests use Node's built-in test runner and HTTP facilities. They cover menu d
 Server startup tests cover HTTP and HTTPS modes, invalid TLS configuration, environment loading, port validation, and graceful shutdown. HTTPS tests use the optional `openssl` executable to generate temporary test certificates outside the repository, trust them explicitly, and remove them afterward. Checks requiring unavailable OpenSSL or permission-testing support are reported as skipped.
 
 For a manual ordering check, open the application, add dishes, adjust quantities, remove an item, and submit. Submission is disabled for an empty cart and while a request is pending. A successful response clears the cart and displays the returned order ID and total; a failed submission preserves the cart so it can be retried.
+
+## Stand & Deliver live-demo helper
+
+Download `kaiorderapp-demo.sh` from this repository before screen sharing, or
+run it from your local checkout. Requires Bash 3.2+, curl and Python 3; no npm
+installation is needed for the helper itself. Run on your laptop, not EC2 or
+CloudShell. The fixed demo hosts and Access team match the Live Demo Edition
+Google Slides deck and the companion Worker configuration.
+
+Before rehearsal, read the **current** EC2 public IPv4 from AWS:
+
+```bash
+read -r -p "Current EC2 public IPv4: " ORIGIN_IP
+export ORIGIN_IP
+bash kaiorderapp-demo.sh preflight
+```
+
+Use the deck's sequence:
+
+| Command | Evidence |
+| --- | --- |
+| `bash kaiorderapp-demo.sh proxy` | Health, Cloudflare metadata, custom header echo, HTTP-to-HTTPS redirect. |
+| `bash kaiorderapp-demo.sh direct` | Healthy proxy before/after a forced direct connection timeout, retaining the TLS hostname. |
+| `bash kaiorderapp-demo.sh rate` | Baseline 200; at most 30 burst requests, stopping at first 429; health check; 20-second quiet period; one recovery 200. |
+| `bash kaiorderapp-demo.sh tunnel` | Health and header echo through the Tunnel hostname; then manually submit a browser mock order. |
+| `bash kaiorderapp-demo.sh access` | Public homepage 200; anonymous `/secure` and `/secure/SG` redirect to the configured Access login. |
+| `bash kaiorderapp-demo.sh private` | Anonymous flag GET redirects to Access and does not return SVG; compare with the authenticated browser. |
+| `bash kaiorderapp-demo.sh preflight` | All non-burst checks and one rate-test baseline; no login or automatic burst. |
+
+Rehearse `rate` separately and leave the endpoint quiet for at least 20 seconds
+before repeating. Baseline and recovery are separate from the 30-request burst.
+The health comparison is sequential evidence, not proof of simultaneous
+isolation. A stale origin IP can still time out: confirm it in AWS yourself.
+Proxy headers do not establish Full (strict), Tunnel routing or account-specific
+origin authentication; pair the result with saved configuration evidence.
+
+The helper disables curl's default configuration and proxy use, never follows
+redirects, never disables TLS validation, and sends no credentials. It prints
+fixed validated summaries rather than raw headers, cookies, redirect state or
+response bodies. Raw responses are held in private temporary files and removed
+on exit. Do not source the script or run with shell tracing/verbose mode.
+Unexpected status, malformed response, network/TLS error, absent 429, or failed
+recovery exits nonzero. Stop and inspect off-screen; do not change infrastructure
+during the panel. No deploy, upload, policy, firewall, restart or SSH operation
+is included.
+
+For the authenticated half, use a private browser at
+`https://tunnel.kaiorderapp.com/secure`, retrieve the OTP off-screen, and follow
+the returned country link. Show the identity sentence and only the flag's
+response status/type/cache policy: 200, `image/svg+xml`, `private, no-store`.
+Do not paste browser credentials into the helper. Preflight cannot establish
+successful login, private bucket settings, or actual R2 object availability.
+
+Offline helper checks (mock curl and sleep; no live infrastructure requests):
+
+```bash
+bash -n kaiorderapp-demo.sh
+python3 test/demo-helper.test.py
+```
